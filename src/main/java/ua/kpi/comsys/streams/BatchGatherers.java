@@ -36,7 +36,7 @@ public final class BatchGatherers {
                     return accepted && state.emitted < maxBatches;
                 },
                 (state, downstream) -> {
-                    if (!state.buffer.isEmpty() && !downstream.isRejecting()) {
+                    if (!state.buffer.isEmpty()) {
                         downstream.push(state.drain());
                     }
                 });

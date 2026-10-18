@@ -104,10 +104,16 @@ class BatchGatherersTest {
     }
 
     @Test
-    void partialBatchNotPushedWhenDownstreamRejects() {
-        // limit(1) rejects after the first batch, the leftover 3 must not be pushed
-        List<List<Integer>> batches = Stream.of(1, 2, 3).gather(BatchGatherers.fixedBatches(2, 5)).limit(1).toList();
+    void downstreamRejectionStopsPullingBeforeLeftover() {
+        AtomicInteger pulled = new AtomicInteger();
+        List<List<Integer>> batches = Stream.of(1, 2, 3)
+                .peek(n -> pulled.incrementAndGet())
+                .gather(BatchGatherers.fixedBatches(2, 5))
+                .limit(1)
+                .toList();
+
         assertEquals(List.of(List.of(1, 2)), batches);
+        assertEquals(2, pulled.get());
     }
 
     @Test
