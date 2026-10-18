@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.stream.Gatherer;
 import java.util.stream.Stream;
 
 /**
@@ -39,6 +40,19 @@ public class TransactionStreamAnalyzer {
                 .sequential()
                 .filter(TransactionStreamAnalyzer::hasAmount)
                 .takeWhile(new WithinBudget(maxBudget))
+                .toList();
+    }
+
+    /**
+     * Splits the stream into batches of {@code batchSize} using {@link BatchGatherers#fixedBatches}
+     * and stops after {@code maxBatches} batches.
+     */
+    public List<List<Transaction>> processBatches(Stream<Transaction> stream, int batchSize, int maxBatches) {
+        requireNonNull(stream, "stream");
+        Gatherer<Transaction, ?, List<Transaction>> batches = BatchGatherers.fixedBatches(batchSize, maxBatches);
+        return stream
+                .filter(TransactionStreamAnalyzer::hasAmount)
+                .gather(batches)
                 .toList();
     }
 

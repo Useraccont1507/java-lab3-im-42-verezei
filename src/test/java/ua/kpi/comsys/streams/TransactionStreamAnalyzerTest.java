@@ -194,4 +194,57 @@ class TransactionStreamAnalyzerTest {
             assertThrows(UnsupportedOperationException.class, () -> taken.add(tx(2, 1)));
         }
     }
+
+    @Nested
+    class ProcessBatches {
+
+        @Test
+        void nullStreamThrows() {
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                    () -> analyzer.processBatches(null, 2, 2));
+            assertEquals("stream cannot be null", e.getMessage());
+        }
+
+        @Test
+        void nonPositiveBatchSizeThrows() {
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                    () -> analyzer.processBatches(infinite(n -> "1"), 0, 2));
+            assertEquals("batchSize must be greater than 0", e.getMessage());
+        }
+
+        @Test
+        void nonPositiveMaxBatchesThrows() {
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                    () -> analyzer.processBatches(infinite(n -> "1"), 2, -5));
+            assertEquals("maxBatches must be greater than 0", e.getMessage());
+        }
+
+        @Test
+        void infiniteStreamGivesExactlyMaxBatches() {
+            AtomicInteger pulled = new AtomicInteger();
+            List<List<Transaction>> batches = analyzer.processBatches(infinite(n -> "10", pulled), 3, 4);
+
+            assertEquals(4, batches.size());
+            assertEquals(List.of("tx-1", "tx-2", "tx-3"), ids(batches.getFirst()));
+            assertEquals(List.of("tx-10", "tx-11", "tx-12"), ids(batches.getLast()));
+            assertTrue(batches.stream().allMatch(b -> b.size() == 3));
+            assertEquals(12, pulled.get());
+        }
+
+        @Test
+        void finiteStreamShorterThanRequested() {
+            Stream<Transaction> stream = Stream.of(tx(1, 1), tx(2, 2), tx(3, 3));
+            List<List<Transaction>> batches = analyzer.processBatches(stream, 2, 5);
+            assertEquals(List.of(List.of("tx-1", "tx-2"), List.of("tx-3")),
+                    batches.stream().map(TransactionStreamAnalyzerTest::ids).toList());
+        }
+
+        @Test
+        void invalidTransactionsSkippedBeforeBatching() {
+            Transaction noAmount = new Transaction("tx-0", "books", null, null);
+            Stream<Transaction> stream = Stream.of(tx(1, 1), null, noAmount, tx(2, 2), tx(3, 3));
+            List<List<Transaction>> batches = analyzer.processBatches(stream, 2, 1);
+            assertEquals(List.of("tx-1", "tx-2"), ids(batches.getFirst()));
+        }
+    }
 }
