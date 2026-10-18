@@ -1,6 +1,7 @@
 [versions]
 java = "25"
 junit = "5.13.4"
+jacoco = "0.8.13"
 
 [libraries]
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }

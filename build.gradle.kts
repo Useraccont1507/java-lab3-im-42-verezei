@@ -1,5 +1,6 @@
 plugins {
     java
+    jacoco
 }
 
 group = "ua.kpi.comsys"
@@ -21,6 +22,19 @@ dependencies {
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 
+jacoco {
+    toolVersion = libs.versions.jacoco.get()
+}
+
 tasks.test {
     useJUnitPlatform()
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required = true
+        html.required = true
+    }
 }
